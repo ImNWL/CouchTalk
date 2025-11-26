@@ -1,4 +1,4 @@
-# 🔥 CouchTalk 围炉夜话
+#  CouchTalk 围炉夜话
 
 一个让多位 AI 角色围炉夜话、畅聊任何话题的 Web 应用。
 
