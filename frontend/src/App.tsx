@@ -159,11 +159,13 @@ function App() {
       const data = await response.json();
       
       // 保存 sessionId
-      if (data.sessionId && !sessionIdRef.current) {
+      if (data.sessionId) {
+        // 立即更新 ref，确保下一个角色可以使用
+        sessionIdRef.current = data.sessionId;
         setSessionId(data.sessionId);
       }
-      console.log(data.sessionId)
-      console.log(sessionIdRef.current)
+      console.log('data.sessionId:', data.sessionId)
+      console.log('sessionIdRef.current:', sessionIdRef.current)
 
       // 处理发言结果
       if (data.error) {
