@@ -30,12 +30,18 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [round, setRound] = useState(0);
   const [sessionId, setSessionId] = useState<string>('');
+  const sessionIdRef = useRef(sessionId); // 使用 ref 跟踪最新的 sessionId
   const [thinkingRole, setThinkingRole] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const wasAtBottomRef = useRef(true);
   const shouldScrollRef = useRef(true);
+
+  // 当 sessionId 状态更新时，同步更新 ref 的值
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -122,81 +128,105 @@ function App() {
     }
   };
 
+  // 获取本轮的随机角色顺序
+  const getShuffledRoles = async (roles: Role[]) => {
+    const response = await fetch('http://localhost:3001/api/chat/start-round', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roles })
+    });
+    const { roles: shuffledRoles } = await response.json();
+    return shuffledRoles;
+  };
+
+  // 处理角色发言
+  const handleRoleSpeaking = async (role: Role) => {
+    // 显示正在思考
+    setThinkingRole(role.name);
+
+    try {
+      const response = await fetch('http://localhost:3001/api/chat/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic,
+          role,
+          roles,
+          sessionId: sessionIdRef.current || undefined
+        })
+      });
+
+      const data = await response.json();
+      
+      // 保存 sessionId
+      if (data.sessionId && !sessionIdRef.current) {
+        setSessionId(data.sessionId);
+      }
+      console.log(data.sessionId)
+      console.log(sessionIdRef.current)
+
+      // 处理发言结果
+      if (data.error) {
+        handleErrorMessage(data, role);
+      } else if (data.message) {
+        setMessages(prev => [...prev, data.message]);
+      }
+    } catch (error) {
+      console.error(`${role.name} 发言失败:`, error);
+      // 网络错误处理
+      setMessages(prev => [...prev, {
+        name: role.name,
+        text: '💤 思索到走神了...（网络错误）'
+      }]);
+    } finally {
+      // 清除思考状态
+      setThinkingRole('');
+    }
+  };
+
+  // 处理错误消息
+  const handleErrorMessage = (data: any, role: Role) => {
+    // 根据错误类型显示不同的提示
+    let errorText = '';
+    if (data.error === 'quota_exceeded') {
+      errorText = '💤 思索到走神了...（API配额已用完）';
+    } else {
+      errorText = '💤 思索到走神了...';
+    }
+    
+    setMessages(prev => [...prev, {
+      name: data.roleName || role.name,
+      text: errorText
+    }]);
+  };
+
+  // 处理所有角色发言
+  const processAllRolesSpeaking = async (shuffledRoles: Role[]) => {
+    for (const role of shuffledRoles) {
+      await handleRoleSpeaking(role);
+    }
+  };
+
   const startRound = async () => {
+    // 参数验证
     if (roles.length < 2) {
       alert('至少需要 2 个角色');
       return;
     }
 
+    // 更新 UI 状态
     setIsLoading(true);
     setRound(round + 1);
     setIsStarted(true);
 
     try {
-      // 1. 获取本轮的随机顺序
-      const orderResponse = await fetch('http://localhost:3001/api/chat/start-round', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roles })
-      });
-      const { roles: shuffledRoles } = await orderResponse.json();
+      // 1. 获取随机顺序
+      const shuffledRoles = await getShuffledRoles(roles);
 
-      // 2. 逐个角色发言
-      for (const role of shuffledRoles) {
-        // 显示正在思考
-        setThinkingRole(role.name);
+      // 2. 处理所有角色发言
+      await processAllRolesSpeaking(shuffledRoles);
 
-        try {
-          const response = await fetch('http://localhost:3001/api/chat/speak', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              topic,
-              role,
-              roles,
-              sessionId: sessionId || undefined
-            })
-          });
-
-          const data = await response.json();
-          
-          // 保存 sessionId
-          if (data.sessionId && !sessionId) {
-            setSessionId(data.sessionId);
-          }
-
-          // 检查是否有错误
-          if (data.error) {
-            // 根据错误类型显示不同的提示
-            let errorText = '';
-            if (data.error === 'quota_exceeded') {
-              errorText = '💤 思索到走神了...（API配额已用完）';
-            } else {
-              errorText = '💤 思索到走神了...';
-            }
-            
-            setMessages(prev => [...prev, {
-              name: data.roleName || role.name,
-              text: errorText
-            }]);
-          } else if (data.message) {
-            // 正常显示消息
-            setMessages(prev => [...prev, data.message]);
-          }
-        } catch (error) {
-          console.error(`${role.name} 发言失败:`, error);
-          // 网络错误也显示提示
-          setMessages(prev => [...prev, {
-            name: role.name,
-            text: '💤 思索到走神了...（网络错误）'
-          }]);
-        }
-
-        // 清除思考状态
-        setThinkingRole('');
-      }
-
-      // 本轮结束，添加分隔标记
+      // 3. 本轮结束，添加分隔标记
       setMessages(prev => [...prev, { 
         name: '__divider__', 
         text: `第 ${round + 1} 轮结束` 
