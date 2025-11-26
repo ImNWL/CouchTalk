@@ -17,16 +17,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: clamp(10px, 2vw, 20px);
 }
 
 .container {
   background: white;
-  border-radius: 20px;
+  border-radius: clamp(10px, 2vw, 20px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   max-width: 1600px;
-  width: 96%;
-  max-height: 95vh;
+  width: 100%;
+  height: 95vh;
+  max-height: 900px;
+  min-height: 500px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -34,39 +36,64 @@ body {
 
 h1 {
   text-align: center;
-  padding: 15px 30px;
+  padding: clamp(12px, 2vh, 15px) clamp(15px, 3vw, 30px);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  font-size: 20px;
+  font-size: clamp(16px, 2.5vw, 20px);
   margin: 0;
   flex-shrink: 0;
   font-weight: 600;
 }
 
 .setup {
-  padding: 40px;
+  padding: clamp(20px, 4vh, 40px) clamp(20px, 3vw, 40px);
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  max-width: min(800px, 90vw);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.setup-content {
+  width: 100%;
+}
+
+.setup-header-image {
+  width: 100%;
+  max-width: clamp(120px, 20vw, 180px);
+  height: auto;
+  margin: 0 auto clamp(15px, 2vh, 20px);
+  border-radius: clamp(8px, 1.5vw, 12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  display: block;
 }
 
 .form-group {
-  margin-bottom: 30px;
+  margin-bottom: clamp(25px, 4vh, 35px);
+}
+
+.form-group:last-of-type {
+  margin-bottom: 0;
 }
 
 .form-group label {
   display: block;
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: clamp(8px, 1.5vh, 10px);
   color: #333;
-  font-size: 16px;
+  font-size: clamp(14px, 2vw, 16px);
 }
 
 .form-group input[type="text"] {
   width: 100%;
-  padding: 12px 16px;
+  padding: clamp(10px, 1.5vh, 12px) clamp(12px, 2vw, 16px);
   border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 16px;
+  border-radius: clamp(8px, 1.2vw, 10px);
+  font-size: clamp(14px, 2vw, 16px);
   transition: border-color 0.3s;
 }
 
@@ -78,19 +105,19 @@ h1 {
 .roles-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 15px;
-  min-height: 40px;
+  gap: clamp(8px, 1.2vw, 10px);
+  margin-bottom: clamp(12px, 2vh, 15px);
+  min-height: clamp(35px, 5vh, 40px);
 }
 
 .role-tag {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: clamp(6px, 1vw, 8px);
+  padding: clamp(6px, 1vh, 8px) clamp(12px, 2vw, 16px);
   background: #f0f0f0;
-  border-radius: 20px;
-  font-size: 14px;
+  border-radius: clamp(15px, 2.5vw, 20px);
+  font-size: clamp(12px, 1.8vw, 14px);
   color: #333;
 }
 
@@ -99,11 +126,11 @@ h1 {
   border: none;
   color: #999;
   cursor: pointer;
-  font-size: 20px;
+  font-size: clamp(16px, 2.5vw, 20px);
   line-height: 1;
   padding: 0;
-  width: 20px;
-  height: 20px;
+  width: clamp(18px, 2.5vw, 20px);
+  height: clamp(18px, 2.5vw, 20px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,27 +142,30 @@ h1 {
 
 .add-role {
   display: flex;
-  gap: 10px;
+  gap: clamp(8px, 1.2vw, 10px);
+  flex-wrap: wrap;
 }
 
 .add-role input {
   flex: 1;
-  padding: 10px 16px;
+  min-width: 150px;
+  padding: clamp(8px, 1.2vh, 10px) clamp(12px, 2vw, 16px);
   border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: clamp(8px, 1.2vw, 10px);
+  font-size: clamp(13px, 1.8vw, 14px);
 }
 
 .add-role button {
-  padding: 10px 20px;
+  padding: clamp(8px, 1.2vh, 10px) clamp(16px, 2.5vw, 20px);
   background: #667eea;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: clamp(8px, 1.2vw, 10px);
   cursor: pointer;
-  font-size: 14px;
+  font-size: clamp(13px, 1.8vw, 14px);
   font-weight: 600;
   transition: background 0.3s;
+  white-space: nowrap;
 }
 
 .add-role button:hover {
@@ -144,19 +174,22 @@ h1 {
 
 .btn-primary {
   width: 100%;
-  padding: 16px;
+  padding: clamp(14px, 2vh, 16px);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 18px;
+  border-radius: clamp(10px, 1.5vw, 12px);
+  font-size: clamp(16px, 2.2vw, 18px);
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.3s;
+  margin-top: clamp(30px, 5vh, 40px);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
 }
 
 .btn-primary:active {
@@ -171,29 +204,31 @@ h1 {
 }
 
 .chat-header {
-  padding: 20px 30px;
+  padding: clamp(15px, 2.5vh, 20px) clamp(20px, 3vw, 30px);
   background: #f8f9fa;
   border-bottom: 1px solid #e0e0e0;
   flex-shrink: 0;
 }
 
 .topic {
-  font-size: 20px;
+  font-size: clamp(16px, 2.5vw, 20px);
   font-weight: 600;
   color: #333;
-  margin-bottom: 8px;
+  margin-bottom: clamp(6px, 1vh, 8px);
+  word-wrap: break-word;
 }
 
 .info {
-  font-size: 14px;
+  font-size: clamp(12px, 1.8vw, 14px);
   color: #666;
+  word-wrap: break-word;
 }
 
 .messages {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px 30px;
+  padding: clamp(15px, 2.5vh, 20px) clamp(20px, 3vw, 30px);
   background: #fafafa;
   min-height: 0;
   -webkit-overflow-scrolling: touch;
@@ -219,7 +254,7 @@ h1 {
 }
 
 .message {
-  margin-bottom: 20px;
+  margin-bottom: clamp(15px, 2.5vh, 20px);
   animation: slideIn 0.3s ease-out;
 }
 
@@ -235,9 +270,9 @@ h1 {
 }
 
 .message-name {
-  font-size: 13px;
+  font-size: clamp(12px, 1.6vw, 13px);
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: clamp(5px, 0.8vh, 6px);
   color: #667eea;
 }
 
@@ -247,11 +282,13 @@ h1 {
 
 .message-text {
   background: white;
-  padding: 14px 18px;
-  border-radius: 12px;
+  padding: clamp(12px, 1.8vh, 14px) clamp(14px, 2.2vw, 18px);
+  border-radius: clamp(10px, 1.5vw, 12px);
   line-height: 1.6;
   color: #333;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .message.user .message-text {
@@ -267,33 +304,33 @@ h1 {
 }
 
 .thinking {
-  margin-bottom: 20px;
+  margin-bottom: clamp(15px, 2.5vh, 20px);
   animation: slideIn 0.3s ease-out;
 }
 
 .thinking-name {
-  font-size: 13px;
+  font-size: clamp(12px, 1.6vw, 13px);
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: clamp(5px, 0.8vh, 6px);
   color: #667eea;
 }
 
 .thinking-text {
   background: white;
-  padding: 14px 18px;
-  border-radius: 12px;
+  padding: clamp(12px, 1.8vh, 14px) clamp(14px, 2.2vw, 18px);
+  border-radius: clamp(10px, 1.5vw, 12px);
   line-height: 1.6;
   color: #999;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   font-style: italic;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(6px, 1vw, 8px);
 }
 
 .thinking-text::before {
   content: '💭';
-  font-size: 16px;
+  font-size: clamp(14px, 2vw, 16px);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -310,19 +347,21 @@ h1 {
 
 .input-area {
   display: flex;
-  gap: 10px;
-  padding: 20px 30px;
+  gap: clamp(8px, 1.2vw, 10px);
+  padding: clamp(15px, 2.5vh, 20px) clamp(20px, 3vw, 30px);
   background: white;
   border-top: 1px solid #e0e0e0;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .input-area input {
   flex: 1;
-  padding: 12px 16px;
+  min-width: 200px;
+  padding: clamp(10px, 1.5vh, 12px) clamp(12px, 2vw, 16px);
   border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 15px;
+  border-radius: clamp(8px, 1.2vw, 10px);
+  font-size: clamp(14px, 1.8vw, 15px);
 }
 
 .input-area input:focus {
@@ -331,15 +370,16 @@ h1 {
 }
 
 .input-area button {
-  padding: 12px 24px;
+  padding: clamp(10px, 1.5vh, 12px) clamp(18px, 2.8vw, 24px);
   background: #667eea;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: clamp(8px, 1.2vw, 10px);
   cursor: pointer;
-  font-size: 15px;
+  font-size: clamp(14px, 1.8vw, 15px);
   font-weight: 600;
   transition: background 0.3s;
+  white-space: nowrap;
 }
 
 .input-area button:hover:not(:disabled) {
@@ -361,20 +401,21 @@ h1 {
 
 .scroll-to-bottom {
   position: absolute;
-  bottom: 20px;
-  right: 30px;
-  padding: 10px 20px;
+  bottom: clamp(15px, 2.5vh, 20px);
+  right: clamp(20px, 3vw, 30px);
+  padding: clamp(8px, 1.2vh, 10px) clamp(16px, 2.5vw, 20px);
   background: #667eea;
   color: white;
   border: none;
-  border-radius: 20px;
+  border-radius: clamp(15px, 2.5vw, 20px);
   cursor: pointer;
-  font-size: 14px;
+  font-size: clamp(13px, 1.8vw, 14px);
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
   transition: all 0.3s;
   z-index: 10;
   animation: slideUp 0.3s ease-out;
+  white-space: nowrap;
 }
 
 .scroll-to-bottom:hover {
@@ -397,8 +438,8 @@ h1 {
 .round-divider {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin: 30px 0;
+  gap: clamp(15px, 2.5vw, 20px);
+  margin: clamp(20px, 3.5vh, 30px) 0;
   animation: fadeIn 0.5s ease-out;
 }
 
@@ -411,12 +452,12 @@ h1 {
 
 .divider-text {
   color: #999;
-  font-size: 13px;
+  font-size: clamp(12px, 1.6vw, 13px);
   font-weight: 600;
   white-space: nowrap;
-  padding: 8px 16px;
+  padding: clamp(6px, 1vh, 8px) clamp(12px, 2vw, 16px);
   background: #f5f5f5;
-  border-radius: 20px;
+  border-radius: clamp(15px, 2.5vw, 20px);
   border: 1px solid #e0e0e0;
 }
 
@@ -428,5 +469,98 @@ h1 {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .app {
+    padding: 10px;
+  }
+
+  .container {
+    border-radius: 15px;
+    height: 98vh;
+  }
+
+  h1 {
+    font-size: 18px;
+    padding: 12px 15px;
+  }
+
+  .setup {
+    padding: 20px 15px;
+  }
+
+  .setup-header-image {
+    max-width: 150px;
+  }
+
+  .chat-header {
+    padding: 12px 15px;
+  }
+
+  .messages {
+    padding: 15px;
+  }
+
+  .input-area {
+    padding: 12px 15px;
+    gap: 8px;
+  }
+
+  .input-area button {
+    padding: 10px 15px;
+    font-size: 13px;
+  }
+
+  .btn-secondary {
+    flex: 0 0 100%;
+    order: 3;
+  }
+}
+
+/* 超小屏幕 */
+@media (max-width: 480px) {
+  .container {
+    width: 100%;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  .app {
+    padding: 0;
+  }
+
+  h1 {
+    font-size: 16px;
+  }
+
+  .setup-header-image {
+    max-width: 120px;
+  }
+
+  .input-area {
+    flex-wrap: wrap;
+  }
+
+  .input-area input {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .input-area button {
+    flex: 1;
+  }
+}
+
+/* 大屏幕优化 */
+@media (min-width: 1920px) {
+  .container {
+    max-width: 1800px;
+  }
+
+  .setup {
+    max-width: 900px;
   }
 }

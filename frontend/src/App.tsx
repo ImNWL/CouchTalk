@@ -11,7 +11,7 @@ interface Role {
 }
 
 function App() {
-  const [topic, setTopic] = useState('哪家公司会是未来五年的这股ai风的最大胜利者');
+  const [topic, setTopic] = useState('哪家公司会是这股ai风未来五年的最大胜利者');
   const [roles, setRoles] = useState<Role[]>([
     { name: '马化腾' },
     { name: '马云' },
@@ -33,47 +33,81 @@ function App() {
   const [thinkingRole, setThinkingRole] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const wasAtBottomRef = useRef(true);
+  const shouldScrollRef = useRef(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 检查滚动条是否在最底端
-  const isScrollAtBottom = () => {
+  // 检查用户是否在底部
+  const isNearBottom = () => {
     const container = messagesContainerRef.current;
     if (!container) return true;
     
-    // 判断滚动条是否在底部（允许1px的误差）
-    const isAtBottom = Math.abs(
-      container.scrollHeight - container.scrollTop - container.clientHeight
-    ) <= 1;
-    
-    return isAtBottom;
+    const threshold = 50; // 距离底部 50px 内认为是在底部
+    const position = container.scrollHeight - container.scrollTop - container.clientHeight;
+    return position <= threshold;
   };
 
-  // 监听滚动，更新按钮显示状态
+  // 监听滚动 - 持续更新用户是否在底部的状态
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
     const handleScroll = () => {
-      setShowScrollButton(!isScrollAtBottom());
+      const atBottom = isNearBottom();
+      wasAtBottomRef.current = atBottom;
+      shouldScrollRef.current = atBottom;
+      setAutoScroll(atBottom);
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // 初始化时也检查一次
+    handleScroll();
+    
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 只有当滚动条在最底端时才自动滚动
-  useEffect(() => {
-    if (messages.length > 0 && isScrollAtBottom()) {
-      // 使用 setTimeout 确保 DOM 更新后再滚动
-      setTimeout(() => {
-        scrollToBottom();
-      }, 50);
+  // 在每次消息变化前捕获滚动位置
+  const prevMessagesLengthRef = useRef(messages.length);
+  
+  // 在渲染前检查滚动位置
+  if (messages.length > prevMessagesLengthRef.current) {
+    // 消息数量增加了，立即检查当前滚动位置
+    const container = messagesContainerRef.current;
+    if (container) {
+      const threshold = 50;
+      const position = container.scrollHeight - container.scrollTop - container.clientHeight;
+      shouldScrollRef.current = position <= threshold;
     }
+  }
+  
+  useEffect(() => {
+    // 消息数量增加了且之前在底部
+    if (messages.length > prevMessagesLengthRef.current && shouldScrollRef.current) {
+      // 使用双重 RAF 确保 DOM 完全更新
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        });
+      });
+    }
+    prevMessagesLengthRef.current = messages.length;
   }, [messages]);
+
+  // 当思考状态变化时，如果在底部也滚动
+  useEffect(() => {
+    if (thinkingRole && shouldScrollRef.current) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      });
+    }
+  }, [thinkingRole]);
 
   const addRole = () => {
     if (newRole.trim() && !isStarted) {
@@ -131,12 +165,31 @@ function App() {
             setSessionId(data.sessionId);
           }
 
-          // 立即显示这个角色的发言
-          if (data.message) {
+          // 检查是否有错误
+          if (data.error) {
+            // 根据错误类型显示不同的提示
+            let errorText = '';
+            if (data.error === 'quota_exceeded') {
+              errorText = '💤 思索到走神了...（API配额已用完）';
+            } else {
+              errorText = '💤 思索到走神了...';
+            }
+            
+            setMessages(prev => [...prev, {
+              name: data.roleName || role.name,
+              text: errorText
+            }]);
+          } else if (data.message) {
+            // 正常显示消息
             setMessages(prev => [...prev, data.message]);
           }
         } catch (error) {
           console.error(`${role.name} 发言失败:`, error);
+          // 网络错误也显示提示
+          setMessages(prev => [...prev, {
+            name: role.name,
+            text: '💤 思索到走神了...（网络错误）'
+          }]);
         }
 
         // 清除思考状态
@@ -157,9 +210,9 @@ function App() {
   };
 
   const sendUserMessage = async () => {
-    if (!userInput.trim() || !sessionId) return;
+    if (!userInput.trim() || !sessionId || isLoading) return;
 
-    const message = { name: '你', text: userInput.trim() };
+    const message = { name: '主持人', text: userInput.trim() };
     setMessages([...messages, message]);
     setUserInput('');
 
@@ -173,6 +226,9 @@ function App() {
           message
         })
       });
+      
+      // 发送完消息后自动开始下一轮
+      await startRound();
     } catch (error) {
       console.error('记录用户消息失败:', error);
     }
@@ -210,41 +266,44 @@ function App() {
 
         {!isStarted ? (
           <div className="setup">
-            <div className="form-group">
-              <label>讨论主题</label>
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="输入讨论主题"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>嘉宾阵容</label>
-              <div className="roles-list">
-                {roles.map((role, index) => (
-                  <div key={index} className="role-tag">
-                    {role.name}
-                    <button onClick={() => removeRole(index)}>×</button>
-                  </div>
-                ))}
-              </div>
-              <div className="add-role">
+            <div className="setup-content">
+              <img src="/1.jpg" alt="围炉夜话" className="setup-header-image" />
+              <div className="form-group">
+                <label>讨论主题</label>
                 <input
                   type="text"
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addRole()}
-                  placeholder="添加嘉宾"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="输入讨论主题"
                 />
-                <button onClick={addRole}>添加</button>
               </div>
-            </div>
 
-            <button className="btn-primary" onClick={startRound}>
-              开始围炉夜话
-            </button>
+              <div className="form-group">
+                <label>嘉宾阵容</label>
+                <div className="roles-list">
+                  {roles.map((role, index) => (
+                    <div key={index} className="role-tag">
+                      {role.name}
+                      <button onClick={() => removeRole(index)}>×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="add-role">
+                  <input
+                    type="text"
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addRole()}
+                    placeholder="添加嘉宾"
+                  />
+                  <button onClick={addRole}>添加</button>
+                </div>
+              </div>
+
+              <button className="btn-primary" onClick={startRound}>
+              🔥 开始围炉夜话
+              </button>
+            </div>
           </div>
         ) : (
           <div className="chat">
@@ -283,10 +342,14 @@ function App() {
               )}
               <div ref={messagesEndRef} />
               
-              {showScrollButton && (
+              {!autoScroll && (
                 <button 
                   className="scroll-to-bottom"
-                  onClick={scrollToBottom}
+                  onClick={() => {
+                    setAutoScroll(true);
+                    wasAtBottomRef.current = true;
+                    scrollToBottom();
+                  }}
                 >
                   ↓ 回到底部
                 </button>

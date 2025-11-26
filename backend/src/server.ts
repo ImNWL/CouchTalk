@@ -12,7 +12,7 @@ const PORT = 3001;
 
 // 配置项
 const CONFIG = {
-  CONTEXT_ROUNDS: 2, // 传入最近几轮对话作为上下文
+  CONTEXT_ROUNDS: 1, // 传入最近几轮对话作为上下文
   SESSION_TIMEOUT: 60 * 60 * 1000, // 会话超时时间（1小时）
   CLEANUP_INTERVAL: 10 * 60 * 1000, // 清理间隔（10分钟）
 };
@@ -95,15 +95,23 @@ function getOrCreateSession(sessionId: string | undefined, topic: string, roles:
   
   for (const role of roles) {
     const systemInstruction = 
-    `你现在的身份是「${role.name}」。\n` +
-    `我们正在进行一场关于"${topic}"的围炉夜话。其他在座参与者：${participantNames}。\n\n` +
+    `# 身份与情境设定\n` +
+    `你当前的身份是「${role.name}」。请以该人物的**真实思维和口吻**参与讨论。\n` +
+    `情境：一场私密的、非公开的围炉谈话。主题是"${topic}"。\n` +
+    `同场朋友：${participantNames}。\n\n` +
     
-    `**请遵循以下规则进行回复：**\n` +
-    `1. **纯对话模式**：你只需要输出你嘴里说出来的话。**严禁**使用括号()、星号**或其他符号来描述动作、神态、心理活动或场景（例如：不要写“喝了一口水”、“笑着说”等）。**\n` +
-    `2. **口语化风格**：像老朋友聊天一样自然，保留你（${role.name}）的说话风格、口头禅和性格特征。不要像在念新闻稿。\n` +
-    `3. **互动性**：你的回复是接在其他人发言之后的，请自然地回应他们的观点，或者向他们提问。\n` +
-    `4. **篇幅控制**：保持在150-200字左右，不要长篇大论，观点要清晰有力。`;
-    
+    `# 核心对话规范 (必须遵守)\n` +
+    `1. **零表演（仅对话）**：你的输出就是**录音转文字的听写稿**。**严禁**使用任何括号()、星号**或其他符号来描述动作、神态、心理活动或场景。只输出嘴里说出来的字。\n` +
+    `2. **拒绝"公关腔"与"客套话"**：\n` +
+    `   你不是在开新闻发布会。**禁止**使用"赋能"、"普惠"、"愿景"等任何官方或企业宣传用语。你的观点要带有${role.name}在私下交流时的**真实、 unfiltered（未经过滤）**的个人色彩和偏见。\n` +
+    `3. **深度思维模拟**：\n` +
+    `   模仿${role.name}的**核心价值观、思维逻辑**和**说话节奏**。如果他惯于使用反问，则多反问；如果他说话直接，则避免委婉。\n` +
+    `4. **流畅的对话节奏**：\n` +
+    `   像真实的人聊天那样，使用**流畅、自然的口语衔接和语气词**，确保你的发言与上一句对话有机的联系和转折。你可以直接反驳、质疑或赞扬其他参与者。\n` +
+    `5. **主持人引导最重要**：\n` +
+    `   **当"主持人"发言时，你必须优先响应主持人提出的问题或观点**。主持人的话是对话的核心引导，你需要直接针对主持人的话题、问题或观点做出回应。不要自说自话或继续之前的话题，而是要紧扣主持人刚才说的内容展开。\n` +
+    `6. **篇幅控制**：单次回复在150-200字之间，保持聊天的自然密度。`;
+
     const chat = client.chats.create({
       model: 'gemini-2.5-flash',
       config: {
@@ -134,7 +142,7 @@ function calculateContextSize(roles: Role[], rounds: number): number {
 
 // 构建上下文文本
 function buildContextText(history: Message[], roles: Role[]): string {
-  const contextSize = calculateContextSize(roles, CONFIG.CONTEXT_ROUNDS);
+  const contextSize = calculateContextSize(roles, CONFIG.CONTEXT_ROUNDS) + 1;
   const recentHistory = history.slice(-contextSize);
   
   if (recentHistory.length === 0) {
@@ -149,11 +157,27 @@ async function speakAsRole(
   chat: any,
   roleName: string,
   recentContext: string
-): Promise<Message | null> {
+): Promise<Message | { error: string }> {
   try {
-    const prompt = recentContext 
-      ? `最近的对话：\n${recentContext}\n\n请继续发言。`
-      : '请开始发言。';
+    let prompt = '';
+    
+    if (recentContext) {
+      // 检查最近的对话中是否有主持人发言
+      const hasHostSpeaking = recentContext.includes('主持人：');
+      
+      if (hasHostSpeaking) {
+        // 找到主持人最后一次发言
+        const lines = recentContext.split('\n');
+        const hostLines = lines.filter(line => line.startsWith('主持人：'));
+        const lastHostMessage = hostLines[hostLines.length - 1];
+        
+        prompt = `最近的对话：\n${recentContext}\n\n⚠️ 特别注意：${lastHostMessage}\n\n主持人的话是最重要的引导，请务必针对主持人的问题或观点做出直接回应，而不是自顾自地继续之前的话题。`;
+      } else {
+        prompt = `最近的对话：\n${recentContext}\n\n请继续发言。`;
+      }
+    } else {
+      prompt = '请开始发言。';
+    }
 
     const response = await chat.sendMessage({ message: prompt });
     const text = response.text?.trim() || '';
@@ -161,10 +185,16 @@ async function speakAsRole(
     if (text) {
       return { name: roleName, text };
     }
-    return null;
-  } catch (error) {
+    return { error: '未获得有效回复' };
+  } catch (error: any) {
     console.error(`${roleName} 发言失败:`, error);
-    return null;
+    
+    // 检查是否是配额超限错误
+    if (error.status === 429) {
+      return { error: 'quota_exceeded' };
+    }
+    
+    return { error: 'api_error' };
   }
 }
 
@@ -207,16 +237,23 @@ app.post('/api/chat/speak', async (req: Request, res: Response) => {
     // 构建最近的对话上下文（从会话历史中获取）
     const recentContext = buildContextText(session.history, session.roles);
 
-    const message = await speakAsRole(chat, role.name, recentContext);
+    const result = await speakAsRole(chat, role.name, recentContext);
     
-    if (!message) {
-      return res.status(500).json({ error: '发言失败' });
+    // 检查是否有错误
+    if ('error' in result) {
+      // 返回错误信息给前端
+      return res.json({ 
+        message: null, 
+        error: result.error,
+        roleName: role.name,
+        sessionId: actualSessionId 
+      });
     }
 
     // 将消息添加到会话历史
-    session.history.push(message);
+    session.history.push(result);
 
-    res.json({ message, sessionId: actualSessionId });
+    res.json({ message: result, sessionId: actualSessionId });
   } catch (error) {
     console.error('API 错误:', error);
     res.status(500).json({ error: '服务器错误' });
