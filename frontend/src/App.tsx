@@ -29,6 +29,7 @@ function App() {
   const [isStarted, setIsStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [round, setRound] = useState(0);
+  const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -68,12 +69,16 @@ function App() {
         body: JSON.stringify({
           topic,
           roles,
-          history: messages
+          history: messages,
+          sessionId: sessionId || undefined
         })
       });
 
       const data = await response.json();
       setMessages([...messages, ...data.messages]);
+      if (data.sessionId && !sessionId) {
+        setSessionId(data.sessionId);
+      }
       setIsStarted(true);
     } catch (error) {
       console.error('发言失败:', error);
@@ -90,10 +95,29 @@ function App() {
     }
   };
 
-  const reset = () => {
+  const reset = async () => {
+    if (!confirm('确定要结束本次围炉夜话吗？\n对话记录将被清空，但你可以开始新的话题。')) {
+      return;
+    }
+
+    // 通知后端清理会话
+    if (sessionId) {
+      try {
+        await fetch('http://localhost:3001/api/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId })
+        });
+        console.log('✅ 会话已清理');
+      } catch (error) {
+        console.error('重置会话失败:', error);
+      }
+    }
+    
     setMessages([]);
     setIsStarted(false);
     setRound(0);
+    setSessionId('');
   };
 
   return (
@@ -175,7 +199,7 @@ function App() {
                 下一轮
               </button>
               <button onClick={reset} className="btn-secondary">
-                重置
+                结束本次夜话
               </button>
             </div>
           </div>
