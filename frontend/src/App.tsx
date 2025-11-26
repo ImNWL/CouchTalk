@@ -164,8 +164,6 @@ function App() {
         sessionIdRef.current = data.sessionId;
         setSessionId(data.sessionId);
       }
-      console.log('data.sessionId:', data.sessionId)
-      console.log('sessionIdRef.current:', sessionIdRef.current)
 
       // 处理发言结果
       if (data.error) {
